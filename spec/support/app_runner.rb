@@ -105,6 +105,7 @@ class AppRunner
       uri = URI(path)
       uri.host   = RouterRunner::HOST_IP if uri.host.nil?
       uri.scheme = "http" if uri.scheme.nil?
+      uri.port = uri.scheme == "https" ? RouterRunner::HTTPS_PORT : RouterRunner::HTTP_PORT
 
       Net::HTTP.start(
         uri.host,
