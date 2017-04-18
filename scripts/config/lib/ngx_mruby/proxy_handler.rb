@@ -16,16 +16,11 @@ if proxy = proxies[NginxConfigUtil.match_proxies(proxies.keys, uri)]
     value     = headers[proxy['header_switch']['header']]
     backend   = proxy['header_switch']['origin_map'][value.strip] if value
   end
-
   backend ||= proxy['origin']
-  proxy_id = backend.gsub(NginxConfigUtil.proxy_strip_regex, '')
 
-  Nginx::Stream.log Nginx::Stream::LOG_NOTICE, "Proxying to: #{proxy_id}"
-  "@#{proxy_id}"
+  "@#{backend.gsub(NginxConfigUtil.proxy_strip_regex, '')}"
 elsif redirect = NginxConfigUtil.match_redirects(redirects.keys, uri)
-  Nginx::Stream.log Nginx::Stream::LOG_NOTICE, "Redirecting to: #{redirect}"
   "@#{redirect}"
 else
-  Nginx::Stream.log Nginx::Stream::LOG_NOTICE, "Unable to proxy or redirect, returning 404."
   '@404'
 end
