@@ -30,10 +30,13 @@ class NginxConfig
       hosts << hash['origin']
       json['proxies'][loc]['backends'] = {}
 
+      proxies[loc]['header_switch'] ||= {}
+      proxies[loc]['header_switch']['origin_map'] ||= {}
+      hosts += proxies[loc]['header_switch']['origin_map'].values
+
       hosts.each do |host|
-        host_id       = host.gsub(NginxConfigUtil.proxy_strip_regex, '')
-        evaled_origin = NginxConfigUtil.interpolate(hash['origin'], ENV)
-        uri           = URI(evaled_origin)
+        host_id = host.gsub(NginxConfigUtil.proxy_strip_regex, '')
+        uri     = URI(NginxConfigUtil.interpolate(host, ENV))
 
         cleaned_path = uri.path
         cleaned_path.chop! if cleaned_path.end_with?('/')
