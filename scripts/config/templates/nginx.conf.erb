@@ -91,16 +91,22 @@ http {
   }
 
   # fallback proxy named match
-  <% proxies.each do |location, hash| %>
-    set $<%= hash['name'] %> <%= hash['host'] %>;
+  <% proxies.each do |location, proxy_config| %>
+    <% proxy_config['backends'].each do |proxy_id, host| %>
+      location @<%= proxy_id %> {
+        rewrite ^<%= location %>/?(.*)$ <%= host['path'] %>/$1 break;
+        # can reuse variable set above
+        proxy_pass <%= host['proxy'] %>;
+        proxy_ssl_server_name on;
+        <% %w(http https).each do |scheme| %>
+        proxy_redirect <%= host["redirect_#{scheme}"] %> <%= location %>;
+        <% end %>
+      }
+    <% end %>
+
     location @<%= location %> {
-      rewrite ^<%= location %>/?(.*)$ <%= hash['path'] %>/$1 break;
-      # can reuse variable set above
-      proxy_pass $<%= hash['name'] %>;
-      proxy_ssl_server_name on;
-      <% %w(http https).each do |scheme| %>
-      proxy_redirect <%= hash["redirect_#{scheme}"] %> <%= location %>;
-      <% end %>
+      mruby_content_handler /app/bin/config/lib/ngx_mruby/proxy_handler.rb;
+      try_files $backend;
     }
   <% end %>
 

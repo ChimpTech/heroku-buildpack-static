@@ -24,22 +24,28 @@ class NginxConfig
     json["root"] ||= DEFAULT[:root]
     json["encoding"] ||= DEFAULT[:encoding]
 
-    index = 0
-    json["proxies"] ||= {}
-    json["proxies"].each do |loc, hash|
-      evaled_origin = NginxConfigUtil.interpolate(hash['origin'], ENV)
-      uri           = URI(evaled_origin)
+    json['proxies'] ||= {}
+    json['proxies'].each do |loc, hash|
+      hosts = []
+      hosts << hash['origin']
+      json['proxies'][loc]['backends'] = {}
 
-      json["proxies"][loc]["name"] = "upstream_endpoint_#{index}"
-      cleaned_path = uri.path
-      cleaned_path.chop! if cleaned_path.end_with?("/")
-      json["proxies"][loc]["path"] = cleaned_path
-      json["proxies"][loc]["host"] = uri.dup.tap {|u| u.path = '' }.to_s
-      %w(http https).each do |scheme|
-        json["proxies"][loc]["redirect_#{scheme}"] = uri.dup.tap {|u| u.scheme = scheme }.to_s
-        json["proxies"][loc]["redirect_#{scheme}"] += "/" if !uri.to_s.end_with?("/")
+      hosts.each do |host|
+        host_id       = Digest::MD5.digest(host)
+        evaled_origin = NginxConfigUtil.interpolate(hash['origin'], ENV)
+        uri           = URI(evaled_origin)
+
+        cleaned_path = uri.path
+        cleaned_path.chop! if cleaned_path.end_with?('/')
+
+        json['proxies'][loc]['backends'][host_id] = {}
+        json['proxies'][loc]['backends'][host_id]['path'] = cleaned_path
+        json['proxies'][loc]['backends'][host_id]['host'] = uri.dup.tap {|u| u.path = '' }.to_s
+        %w(http https).each do |scheme|
+          json['proxies'][loc]['backends'][host_id]["redirect_#{scheme}"] = uri.dup.tap {|u| u.scheme = scheme }.to_s
+          json['proxies'][loc]['backends'][host_id]["redirect_#{scheme}"] += '/' if !uri.to_s.end_with?('/')
+        end
       end
-      index += 1
     end
 
     json["clean_urls"] ||= DEFAULT[:clean_urls]
