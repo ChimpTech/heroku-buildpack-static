@@ -28,7 +28,7 @@ def determine_proxy(proxy, headers, req)
   end
 
   backend ||= proxy['origin']
-  r.var.set "backend", "@#{backend.gsub(NginxConfigUtil.proxy_strip_regex, '')}"
+  "@#{backend.gsub(NginxConfigUtil.proxy_strip_regex, '')}"
 end
 
 proxy_or_redirect(headers, redirects, proxies, req)
