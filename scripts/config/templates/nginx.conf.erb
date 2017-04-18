@@ -106,7 +106,7 @@ http {
 
     location @<%= location %> {
       mruby_set $backend /app/bin/config/lib/ngx_mruby/proxy_handler.rb;
-      try_files $backend;
+      try_files $uri $backend;
     }
   <% end %>
 
