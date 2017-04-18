@@ -31,7 +31,7 @@ class NginxConfig
       json['proxies'][loc]['backends'] = {}
 
       hosts.each do |host|
-        host_id       = host.gsub(/[\:\/\.]/, '')
+        host_id       = host.gsub(NginxConfigUtil.proxy_strip_regex, '')
         evaled_origin = NginxConfigUtil.interpolate(hash['origin'], ENV)
         uri           = URI(evaled_origin)
 

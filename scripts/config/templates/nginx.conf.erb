@@ -92,14 +92,14 @@ http {
 
   # fallback proxy named match
   <% proxies.each do |location, proxy_config| %>
-    <% proxy_config['backends'].each do |proxy_id, host| %>
+    <% proxy_config['backends'].each do |proxy_id, backend| %>
       location @<%= proxy_id %> {
-        rewrite ^<%= location %>/?(.*)$ <%= host['path'] %>/$1 break;
+        rewrite ^<%= location %>/?(.*)$ <%= backend['path'] %>/$1 break;
         # can reuse variable set above
-        proxy_pass <%= host['proxy'] %>;
+        proxy_pass <%= backend['host'] %>;
         proxy_ssl_server_name on;
         <% %w(http https).each do |scheme| %>
-        proxy_redirect <%= host["redirect_#{scheme}"] %> <%= location %>;
+        proxy_redirect <%= backend["redirect_#{scheme}"] %> <%= location %>;
         <% end %>
       }
     <% end %>

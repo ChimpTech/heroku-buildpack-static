@@ -61,4 +61,8 @@ module NginxConfigUtil
       acc
     end
   end
+
+  def self.proxy_strip_regex
+    /[\:\/\.\{\}\$]/
+  end
 end
