@@ -28,7 +28,7 @@ def determine_proxy(proxy, headers, req)
   end
 
   backend ||= proxy['origin']
-  r.var.set "backend", "@#{Digest::MD5.digest(backend)}"
+  r.var.set "backend", "@#{backend.gsub(/[\:\/\.]/, '')}"
 end
 
 proxy_or_redirect(headers, redirects, proxies, req)

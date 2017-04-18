@@ -31,7 +31,7 @@ class NginxConfig
       json['proxies'][loc]['backends'] = {}
 
       hosts.each do |host|
-        host_id       = Digest::MD5.digest(host)
+        host_id       = host.gsub(/[\:\/\.]/, '')
         evaled_origin = NginxConfigUtil.interpolate(hash['origin'], ENV)
         uri           = URI(evaled_origin)
 
