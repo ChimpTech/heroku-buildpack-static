@@ -30,9 +30,9 @@ class NginxConfig
       hosts << hash['origin']
       json['proxies'][loc]['backends'] = {}
 
-      proxies[loc]['header_switch'] ||= {}
-      proxies[loc]['header_switch']['origin_map'] ||= {}
-      hosts += proxies[loc]['header_switch']['origin_map'].values
+      json['proxies'][loc]['header_switch'] ||= {}
+      json['proxies'][loc]['header_switch']['origin_map'] ||= {}
+      hosts += json['proxies'][loc]['header_switch']['origin_map'].values
 
       hosts.each do |host|
         host_id = host.gsub(NginxConfigUtil.proxy_strip_regex, '')
