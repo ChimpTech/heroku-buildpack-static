@@ -39,6 +39,15 @@ class NginxConfig
       if proxy_hash['split_clients']
         json['split_clients'] = true
         hosts += proxy_hash['split_clients'].values.select{|v| v.is_a?(Array) }.map(&:last)
+
+        proxy_hash['split_clients'].select{|_,v| v.is_a?(Array) }.each do |split_name, split_data|
+          split_data[0] = NginxConfigUtil.interpolate(split_data[0], ENV)
+
+          unless split_name == NginxConfigUtil.interpolate(split_name, ENV)
+            proxy_hash['split_clients'].delete(split_name)
+            proxy_hash['split_clients'][NginxConfigUtil.interpolate(split_name, ENV)]
+          end
+        end
       end
 
       hosts.each do |host|
