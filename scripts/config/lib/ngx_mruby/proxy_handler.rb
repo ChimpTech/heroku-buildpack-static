@@ -20,24 +20,20 @@ cookies   = Hash[
 cookies ||= {}
 
 if proxy = proxies[NginxConfigUtil.match_proxies(proxies.keys, uri)]
-  backend = nil
   if proxy['header_switch']
-    value     = headers[proxy['header_switch']['header']]
-    backend   = proxy['header_switch']['origin_map'][value.strip] if value
+    value   = headers[proxy['header_switch']['header']]
+    backend = proxy['header_switch']['origin_map'][value.strip] if value
   end
 
   if proxy['split_clients']
-    route_key     = proxy['split_clients']['route_key']
-    destination   = req.var.__send__("arg_#{route_key}".to_sym)
+    route_key    = proxy['split_clients']['route_key']
+    destinations = proxy['split_clients'].select{|_,v| v.is_a?(Array) }.keys
+    route_arg    = req.var.__send__("arg_#{route_key}".to_sym)
+    split_var    = req.var.__send__(route_key.to_sym)
 
-    proxy['split_clients'].select{|_,v| v.is_a?(Array) }.keys.each do |dest|
-      if dest == cookies[route_key]
-        destination ||= dest
-        break
-      end
-    end if cookies[route_key]
-
-    destination ||= req.var.__send__(route_key.to_sym)
+    destination   = route_arg if destinations.include?(route_arg)
+    destination ||= cookies[route_key] if destinations.include?(cookies[route_key])
+    destination ||= split_var
 
     proxy['split_clients'].select{|_,v| v.is_a?(Array) }.each do |dest, dest_info|
       if dest == destination
@@ -45,13 +41,6 @@ if proxy = proxies[NginxConfigUtil.match_proxies(proxies.keys, uri)]
         break
       end
     end
-
-    unless backend
-      dest , dest_info = proxy['split_clients'].select{|_,v| v.is_a?(Array) }.detect{|_,v| v.first == '*'}
-      destination      = dest
-      backend          = dest_info.last
-    end
-
 
     req.headers_out['Set-Cookie'] = "#{route_key}=#{destination}"
   end
