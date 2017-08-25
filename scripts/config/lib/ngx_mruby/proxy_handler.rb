@@ -28,10 +28,10 @@ if proxy = proxies[NginxConfigUtil.match_proxies(proxies.keys, uri)]
   if proxy['split_clients']
     route_key    = proxy['split_clients']['route_key']
     destinations = proxy['split_clients'].select{|_,v| v.is_a?(Array) }.keys
-    route_arg    = req.var.__send__("arg_#{route_key}".to_sym)
+    param        = req.var.__send__("arg_#{route_key}".to_sym)
     split_var    = req.var.__send__(route_key.to_sym)
 
-    destination   = route_arg if destinations.include?(route_arg)
+    # destination   = param if destinations.include?(param)
     destination ||= cookies[route_key] if destinations.include?(cookies[route_key])
     destination ||= split_var
 
