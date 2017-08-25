@@ -22,6 +22,11 @@ if proxy = proxies[NginxConfigUtil.match_proxies(proxies.keys, uri)]
     route_key     = proxy['split_clients']['route_key']
     cookie_regex  = Regexp.compile("#{route_key}=([\\S][^;]*)")
 
+    Nginx.log Nginx::INFO, "arg_#{route_key}: " + req.var.__send__("arg_#{route_key}".to_sym)
+    Nginx.log Nginx::INFO, "Cookies: " + headers['Cookies'].inspect
+    Nginx.log Nginx::INFO, "variable: " + req.var.__send__(route_key.to_sym)
+
+
     destination   = req.var.__send__("arg_#{route_key}".to_sym)
     destination ||= headers['Cookies'].matches(cookie_regex)[1] if cookie_regex =~ headers['Cookies']
     destination ||= req.var.__send__(route_key.to_sym)
