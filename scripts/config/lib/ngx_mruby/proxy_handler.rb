@@ -11,12 +11,12 @@ headers   = req.headers_in
 proxies   = config['proxies'] || {}
 redirects = config['redirects'] || {}
 cookies   = Hash[
-  headers['Cookies'].
+  headers['Cookie'].
   split(';').
   map(&:strip).
   map{|kvp| kvp.split('=') }.
   select{|kvp| kvp.is_a?(Array) && kvp.size == 2}
-] if headers['Cookies']
+] if headers['Cookie']
 cookies ||= {}
 
 if proxy = proxies[NginxConfigUtil.match_proxies(proxies.keys, uri)]
@@ -31,7 +31,7 @@ if proxy = proxies[NginxConfigUtil.match_proxies(proxies.keys, uri)]
     param        = req.var.__send__("arg_#{route_key}".to_sym)
     split_var    = req.var.__send__(route_key.to_sym)
 
-    # destination   = param if destinations.include?(param)
+    destination   = param if destinations.include?(param)
     destination ||= cookies[route_key] if destinations.include?(cookies[route_key])
     destination ||= split_var
 
