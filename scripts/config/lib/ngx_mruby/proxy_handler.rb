@@ -22,9 +22,9 @@ if proxy = proxies[NginxConfigUtil.match_proxies(proxies.keys, uri)]
     route_key     = proxy['split_clients']['route_key']
     cookie_regex  = Regexp.compile("#{route_key}=([\\S][^;]*)")
 
-    Nginx.log Nginx::LOG_INFO, "arg_#{route_key}: " + req.var.__send__("arg_#{route_key}".to_sym)
-    Nginx.log Nginx::LOG_INFO, "Cookies: " + headers['Cookies'].inspect
-    Nginx.log Nginx::LOG_INFO, "variable: " + req.var.__send__(route_key.to_sym)
+    Nginx.errlogger Nginx::LOG_INFO, "arg_#{route_key}: " + req.var.__send__("arg_#{route_key}".to_sym)
+    Nginx.errlogger Nginx::LOG_INFO, "Cookies: " + headers['Cookies'].inspect
+    Nginx.errlogger Nginx::LOG_INFO, "variable: " + req.var.__send__(route_key.to_sym)
 
 
     destination   = req.var.__send__("arg_#{route_key}".to_sym)
@@ -51,6 +51,5 @@ if proxy = proxies[NginxConfigUtil.match_proxies(proxies.keys, uri)]
 elsif redirect = NginxConfigUtil.match_redirects(redirects.keys, uri)
   "@#{redirect}"
 else
-  Nginx.log Nginx::LOG_INFO, "404 from proxy handler"
   '@404'
 end

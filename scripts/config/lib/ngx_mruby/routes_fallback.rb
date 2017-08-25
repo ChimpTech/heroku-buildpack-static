@@ -15,6 +15,5 @@ if proxy = NginxConfigUtil.match_proxies(proxies.keys, uri)
 elsif redirect = NginxConfigUtil.match_redirects(redirects.keys, uri)
   "@#{redirect}"
 else
-  Nginx.log Nginx::LOG_INFO, "404 from fallback"
   "@404"
 end
