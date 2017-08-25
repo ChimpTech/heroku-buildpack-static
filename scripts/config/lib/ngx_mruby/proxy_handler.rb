@@ -10,6 +10,14 @@ uri       = req.var.uri
 headers   = req.headers_in
 proxies   = config['proxies'] || {}
 redirects = config['redirects'] || {}
+cookies   = Hash[
+  headers['Cookies'].
+  split(';').
+  map(&:strip).
+  map{|kvp| kvp.split('=') }.
+  select{|kvp| kvp.is_a?(Array) && kvp.size == 2}
+] if headers['Cookies']
+cookies ||= {}
 
 if proxy = proxies[NginxConfigUtil.match_proxies(proxies.keys, uri)]
   backend = nil
@@ -20,29 +28,32 @@ if proxy = proxies[NginxConfigUtil.match_proxies(proxies.keys, uri)]
 
   if proxy['split_clients']
     route_key     = proxy['split_clients']['route_key']
-    cookie_regex  = Regexp.compile("#{route_key}=([\\S][^;]*)")
-
-    Nginx.errlogger Nginx::LOG_INFO, "arg_#{route_key}: " + req.var.__send__("arg_#{route_key}".to_sym)
-    Nginx.errlogger Nginx::LOG_INFO, "Cookies: " + headers['Cookies'].inspect
-    Nginx.errlogger Nginx::LOG_INFO, "variable: " + req.var.__send__(route_key.to_sym)
-
-
     destination   = req.var.__send__("arg_#{route_key}".to_sym)
-    destination ||= headers['Cookies'].matches(cookie_regex)[1] if cookie_regex =~ headers['Cookies']
+
+    proxy['split_clients'].select{|_,v| v.is_a?(Array) }.keys.each do |dest|
+      if dest == cookies[route_key]
+        destination ||= dest
+        break
+      end
+    end if cookies[route_key]
+
     destination ||= req.var.__send__(route_key.to_sym)
 
     proxy['split_clients'].select{|_,v| v.is_a?(Array) }.each do |dest, dest_info|
       if dest == destination
         backend ||= dest_info.last
-        req.headers_out['Set-Cookie'] = "split=#{destination}"
         break
       end
     end
 
     unless backend
-      backend = proxy['split_clients'].select{|_,v| v.is_a?(Array) }.values.detect{|v| v.first == '*'}.last
-      req.headers_out['Set-Cookie'] = "split=#{req.var.__send__(route_key.to_sym)}"
+      dest , dest_info = proxy['split_clients'].select{|_,v| v.is_a?(Array) }.detect{|_,v| v.first == '*'}
+      destination      = dest
+      backend          = dest_info.last
     end
+
+
+    req.headers_out['Set-Cookie'] = "#{route_key}=#{destination}"
   end
 
   backend ||= proxy['origin']
