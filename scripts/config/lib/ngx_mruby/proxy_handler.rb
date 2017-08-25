@@ -12,10 +12,34 @@ proxies   = config['proxies'] || {}
 redirects = config['redirects'] || {}
 
 if proxy = proxies[NginxConfigUtil.match_proxies(proxies.keys, uri)]
+  backend = nil
   if proxy['header_switch']
     value     = headers[proxy['header_switch']['header']]
     backend   = proxy['header_switch']['origin_map'][value.strip] if value
   end
+
+  if proxy['split_clients']
+    route_key     = proxy['split_clients']['route_key']
+    cookie_regex  = Regexp.compile("#{route_key}=([\\S][^;]*)")
+
+    destination   = req.var.__send__("arg_#{route_key}".to_sym)
+    destination ||= headers['Cookies'].matches(cookie_regex)[1] if cookie_regex =~ headers['Cookies']
+    destination ||= req.var.__send__(route_key.to_sym)
+
+    proxy['split_clients'].select{|_,v| v.is_a?(Array) }.each do |dest, dest_info|
+      if dest == destination
+        backend ||= dest_info.last
+        req.headers_out['Set-Cookie'] = "split=#{destination}"
+        break
+      end
+    end
+
+    unless backend
+      backend = proxy['split_clients'].select{|_,v| v.is_a?(Array) }.values.detect{|v| v.first == '*'}.last
+      req.headers_out['Set-Cookie'] = "split=#{req.var.__send__(route_key.to_sym)}"
+    end
+  end
+
   backend ||= proxy['origin']
 
   "@#{backend.gsub(NginxConfigUtil.proxy_strip_regex, '')}"

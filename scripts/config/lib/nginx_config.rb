@@ -24,15 +24,22 @@ class NginxConfig
     json["root"] ||= DEFAULT[:root]
     json["encoding"] ||= DEFAULT[:encoding]
 
-    json['proxies'] ||= {}
-    json['proxies'].each do |loc, hash|
+    json['proxies']     ||= {}
+    json['split_clients'] = false
+    json['route_keys']    = []
+    json['proxies'].each do |loc, proxy_hash|
       hosts = []
-      hosts << hash['origin']
-      json['proxies'][loc]['backends'] = {}
+      hosts << proxy_hash['origin']
+      proxy_hash['backends'] = {}
 
-      json['proxies'][loc]['header_switch'] ||= {}
-      json['proxies'][loc]['header_switch']['origin_map'] ||= {}
-      hosts += json['proxies'][loc]['header_switch']['origin_map'].values
+      proxy_hash['header_switch'] ||= {}
+      proxy_hash['header_switch']['origin_map'] ||= {}
+      hosts += proxy_hash['header_switch']['origin_map'].values
+
+      if proxy_hash['split_clients']
+        json['split_clients'] = true
+        hosts += proxy_hash['split_clients'].values.select{|v| v.is_a?(Array) }.map(&:last)
+      end
 
       hosts.each do |host|
         host_id = host.gsub(NginxConfigUtil.proxy_strip_regex, '')
@@ -41,12 +48,12 @@ class NginxConfig
         cleaned_path = uri.path
         cleaned_path.chop! if cleaned_path.end_with?('/')
 
-        json['proxies'][loc]['backends'][host_id] = {}
-        json['proxies'][loc]['backends'][host_id]['path'] = cleaned_path
-        json['proxies'][loc]['backends'][host_id]['host'] = uri.dup.tap {|u| u.path = '' }.to_s
+        proxy_hash['backends'][host_id] = {}
+        proxy_hash['backends'][host_id]['path'] = cleaned_path
+        proxy_hash['backends'][host_id]['host'] = uri.dup.tap {|u| u.path = '' }.to_s
         %w(http https).each do |scheme|
-          json['proxies'][loc]['backends'][host_id]["redirect_#{scheme}"] = uri.dup.tap {|u| u.scheme = scheme }.to_s
-          json['proxies'][loc]['backends'][host_id]["redirect_#{scheme}"] += '/' if !uri.to_s.end_with?('/')
+          proxy_hash['backends'][host_id]["redirect_#{scheme}"] = uri.dup.tap {|u| u.scheme = scheme }.to_s
+          proxy_hash['backends'][host_id]["redirect_#{scheme}"] += '/' if !uri.to_s.end_with?('/')
         end
       end
     end
