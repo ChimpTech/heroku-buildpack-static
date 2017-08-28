@@ -40,7 +40,7 @@ http {
 <% if split_clients %>
 <% proxies.select{|_,v| v['split_clients'] }.each do |location, proxy_config|
      next if route_keys.include?(proxy_config['split_clients']['route_key'])
-     route_keys << proxy_config['split_clients']['route_key'] %>split_clients "${remote_port}" $<%= proxy_config['split_clients']['route_key'] %> {
+     route_keys << proxy_config['split_clients']['route_key'] %>  split_clients "${remote_port}" $<%= proxy_config['split_clients']['route_key'] %> {
     <% proxy_config['split_clients'].select{|_,v| v.is_a?(Array) }.each do |split_name, split_data| %><%= split_data[0] %> <%= split_name %>;
     <% end %>
   }<% end %><% end %>
