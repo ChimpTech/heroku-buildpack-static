@@ -27,26 +27,21 @@ class NginxConfig
     json['proxies']     ||= {}
     json['split_clients'] = false
     json['route_keys']    = []
-    json['proxies'].each do |loc, proxy_hash|
+    json['proxies'].each do |loc, proxy_data|
       hosts = []
-      hosts << proxy_hash['origin']
-      proxy_hash['backends'] = {}
+      hosts << proxy_data['origin']
+      proxy_data['backends'] = {}
 
-      proxy_hash['header_switch'] ||= {}
-      proxy_hash['header_switch']['origin_map'] ||= {}
-      hosts += proxy_hash['header_switch']['origin_map'].values
+      proxy_data['header_switch'] ||= {}
+      proxy_data['header_switch']['origin_map'] ||= {}
+      hosts += proxy_data['header_switch']['origin_map'].values
 
-      if proxy_hash['split_clients']
+      if proxy_data['split_clients']
         json['split_clients'] = true
-        hosts += proxy_hash['split_clients'].values.select{|v| v.is_a?(Array) }.map(&:last)
+        hosts += proxy_data['split_clients'].values.select{|v| v.is_a?(Array) }.map(&:last)
 
-        proxy_hash['split_clients'].select{|_,v| v.is_a?(Array) }.each do |split_name, split_data|
+        proxy_data['split_clients'].select{|_,v| v.is_a?(Array) }.each do |split_name, split_data|
           split_data[0] = NginxConfigUtil.interpolate(split_data[0], ENV)
-
-          unless split_name == NginxConfigUtil.interpolate(split_name, ENV)
-            proxy_hash['split_clients'].delete(split_name)
-            proxy_hash['split_clients'][NginxConfigUtil.interpolate(split_name, ENV)]
-          end
         end
       end
 
@@ -57,12 +52,12 @@ class NginxConfig
         cleaned_path = uri.path
         cleaned_path.chop! if cleaned_path.end_with?('/')
 
-        proxy_hash['backends'][host_id] = {}
-        proxy_hash['backends'][host_id]['path'] = cleaned_path
-        proxy_hash['backends'][host_id]['host'] = uri.dup.tap {|u| u.path = '' }.to_s
+        proxy_data['backends'][host_id] = {}
+        proxy_data['backends'][host_id]['path'] = cleaned_path
+        proxy_data['backends'][host_id]['host'] = uri.dup.tap {|u| u.path = '' }.to_s
         %w(http https).each do |scheme|
-          proxy_hash['backends'][host_id]["redirect_#{scheme}"] = uri.dup.tap {|u| u.scheme = scheme }.to_s
-          proxy_hash['backends'][host_id]["redirect_#{scheme}"] += '/' if !uri.to_s.end_with?('/')
+          proxy_data['backends'][host_id]["redirect_#{scheme}"] = uri.dup.tap {|u| u.scheme = scheme }.to_s
+          proxy_data['backends'][host_id]["redirect_#{scheme}"] += '/' if !uri.to_s.end_with?('/')
         end
       end
     end
@@ -74,8 +69,8 @@ class NginxConfig
     json["routes"] = NginxConfigUtil.parse_routes(json["routes"])
 
     json["redirects"] ||= {}
-    json["redirects"].each do |loc, hash|
-      json["redirects"][loc].merge!("url" => NginxConfigUtil.interpolate(hash["url"], ENV))
+    json["redirects"].each do |loc, redirect_data|
+      json["redirects"][loc].merge!("url" => NginxConfigUtil.interpolate(redirect_data["url"], ENV))
     end
 
     json["error_page"] ||= nil
